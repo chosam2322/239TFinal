@@ -1,0 +1,177 @@
+---
+title: "Voter Suppression Mapping Project"
+author: "Christian Hosam"
+date: "4/30/2019"
+output: html_document
+---
+
+```{r Clear global environment}
+### Clear global environment
+rm(list=ls()) 
+```
+
+## Set Up
+
+### Libraries 
+```{r Set up libraries}
+### Download Libraries 
+library(pacman)
+p_load(tidyverse, rsunlight, stringr, magrittr, httr, data.table, rmarkdown, knitr, tinytex, magrittr,
+       gplots, #for heatmaps
+       tigris, #Census/Mapping library
+       viridis, RColorBrewer, scales, #good colors
+       grDevices, graphics,
+       mapproj, ggmap,
+       rgdal, tmap, 
+       maptools, tmaptools,
+       tidycensus, censusapi #two different census api packages
+       )
+```
+
+###Download Legacy CSV Files
+```{r download zip files}
+
+### Get state abbreviations
+data(state)
+
+### Convert state abbreviations to lower case
+state.abb <- str_to_lower(state.abb)
+
+### Create empty list 
+data_list <- list()
+
+### Set location to save data
+saveLocation <- "C:/Users/Christian/Box/Computation/"
+
+### Set index (for testing)
+i <- 51
+
+##Add DC 
+state.abb[51] <- "dc"
+for(i in 1:51)
+  {
+
+  stateAbb <- state.abb[i]
+  
+  url <- paste0("https://data.openstates.org/legacy/csv/",stateAbb,".zip")
+  saveLocationZip <- paste0(saveLocation,stateAbb,".zip")
+  extractCsv <- paste0(stateAbb,"_bills.csv")
+  
+  download.file(url, saveLocationZip)
+  unzip(saveLocationZip, exdir=paste0(saveLocation,stateAbb))
+  data <- read.csv(paste0(saveLocation,stateAbb,"/",extractCsv))
+  
+  data %<>% mutate(state=stateAbb)
+  data %<>% mutate(session=as.character(session))
+  
+  data_list[[i]] <- data
+
+}
+
+final_dat <- bind_rows(data_list)
+
+#Save final_dat 
+save(final_dat, file = "total_bills.RData")
+```
+
+###Download Bill Actions
+```{r download Bill_Actions CSV}
+for (i in 1:51) 
+  {
+  stateAbb <- state.abb[i]
+  extractCsv <- paste0(stateAbb,"_bill_actions.csv")
+
+ data <- read.csv(paste0(saveLocation,stateAbb,"/",extractCsv))
+  
+  data %<>% mutate(state=stateAbb)
+  data %<>% mutate(session=as.character(session))
+  
+  data_list[[i]] <- data
+}
+billActions <- bind_rows(data_list)
+
+#Save billActions
+save(billActions, file = "billactions.RData")
+```
+
+##Cultivate Data from API Request 
+```{r Subset CSV Files to Data of Interest}
+load("total_bills.RData")
+
+final_dat %<>% mutate(date = ymd(str_sub(created_at,1,10)), year = year(date))
+billSubset <- final_dat %>% filter(year %in% c(2011: 2014))
+billSubset %<>% mutate(health = ifelse(str_detect("Health",subjects),1,0)) %>% 
+  filter(health == 1)
+  
+rm(final_dat)
+```
+
+###Merge Subsetted Bill DataFrame with Bill Actions
+```{r Merge Different CSV Files}
+load("billactions.RData")
+
+billActions %<>% 
+  mutate(governor = ifelse(type=="governor:received" | type=="governor:signed",1,0)) %>%
+  mutate(date = ymd(str_sub(date,1,10)),
+         year = year(date))
+
+billActions_agg <- billActions %>%
+  group_by(bill_id, state, year, session) %>%
+  summarise(governor = max(governor)) %>%
+  ungroup() %>%
+  filter(year %in% c(2011:2014)) %>%
+  spread(key=year, value=governor) %>%
+  rename(passed2011 = "2011",
+         passed2012 = "2012",
+         passed2013 = "2013",
+         passed2014 = "2014") %>%
+  mutate_at(vars(contains("passed")), funs(ifelse(is.na(.),0,.)))
+
+final <- left_join(x=billSubset, y=billActions_agg, by=c("bill_id","state","session"))
+### State and County codes from tigris package
+data(fips_codes)
+fips_codes %<>% 
+  distinct(state, state_code) %>%
+  mutate(state = str_to_lower(state))
+
+final %<>% left_join(x=., y=fips_code, by=c("state")) 
+final12 <- final %>% filter((year==2011 & passed2011==0) | (year==2012)) %>%
+  select(-passed2011, -passed2013, -passed2014)
+
+final14 <- final %>% filter((year==2013 & passed2011==0) | (year==2014)) %>%
+  select(-passed2011, -passed2012, -passed2013)
+
+final12 %<>% group_by(state) %>% 
+  summarise(numerator = sum(passed2012, na.rm=T),
+            denominator = n(), 
+            pct_passed = numerator / denominator) %>%
+  ungroup()
+
+final14 %<>% group_by(state) %>% 
+  summarise(numerator = sum(passed2014, na.rm=T),
+            denominator = n(), 
+            pct_passed = numerator / denominator) %>%
+  ungroup()
+
+#Save Final datasets
+save(final, file = "final.RData")
+save(final12, file = "final12.RData")
+save(final14, file = "final14.RData")
+```
+##Create Heat Map Using Data 
+###Download Shapefile
+```{r}
+# Download USDA shapefile
+setwd("../Data_Raw/Shapefile/")
+US_counties <- rgdal::readOGR(dsn=".",layer="gz_2010_us_050_00_5m",
+                              stringsAsFactors=FALSE)
+```
+
+```{r}
+class(US_counties)
+dim(US_counties)
+plot(US_counties)
+```
+
+
+##Conduct Statistical Analysis 
