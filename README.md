@@ -10,33 +10,55 @@
   
 ## Data (Raw) 
   1_totalbills.Rdata - File with all bills passed or introduced for all fifty states and DC from the legacy CSV files on OpenStates.org
+  
   2_billactions.Rdata - File with all actions taken on bills for all fifty states and DC from the legacy CSV files on OpenStates.org
+  
   2_fips_codes.Rdata - File with fips codes for states and counties to base mapping off of 
+  
+  
 ## Data (Processed)
   1_final.Rdata - Merged file with both total bills passed as well as the actions taken on each bill
+  
   2_final12.Rdata - Merged file with both total bills passed and actions taken for bills in 2012. Used as base for mapping
+  
   3_final14.Rdata - Merged file with both total bills passed and actions taken for bills in 2014. Used as base for mapping
+
 
 ## Code
   ComputationalToolsFinal.Rmd - All subsequent code below compiled in one RMarkdown file
+  
   00_Final_LibraryDownloads.R - download packages and libraries for project
+  
   01_Final_DownloadBills.R - writes for loop to download each states bills. Saved as 1_totalbills.Rdata
+  
   02_Final_DownloadBillActions.R - writes for loop to download all actions taken on state bills. Saved as 2_billactions.Rdata
+  
   03_Final_SubsettoRelevantTopics.R - uses diplyr and tidyverse packages to subset the totalbills and billactions data to just healthcare legislation
+  
   04_Final_MergeDatasets.R - Merges the totalbills and billactions datasets to one dataframe
+  
   05_Final_DownloadShapefile.R - Downloads Shapefile to serve as the skeleton for the mapping project
+  
   06_Final_Create2012Map.R - Creates a map of legislation passed in 2012 for different U.S. states
+  
   07_Final_Create2014Map.R - Creates a map of legislation passed in 2014 for different U.S. states
+  
   08_Final_PlotMapsTogether.R - Uses facet wrap in ggplot2 to plot maps together. Saved as LegislativeMapCombined.PDF
+  
   09_Final_ttest.R - Conducts a simple two independent sample t-test to provide statistical backing for the map findings (no real difference in 2012 and 2014)
   
-  ## Results 
+
+## Results 
   LegislativeMap2012.PDF - Map of 2012 legislation
+  
   LegislativeMap2014.PDF - Map of 2014 legislation
+  
   LegislativeMapCombined.PDF - 2012 and 2014 maps plotted in the same place
   
 # Supplemental Information
 Quick note - Legacy CSVs were used rather than APIs because the proprietary changes to the OpenStates API made it difficult to nail down what type of call would be consistent across states. In addition, the original focus of this project was going to be voting but the subject tag provided errors across states, with some states not having voting as a subject at all. A next iteration of a project like this would create a web scraper that would search individual bill text and use that instead of the legacy CSVs. 
+
 Huge thanks to Julia Christensen for sitting with me step by step to make sure this project would be completed
+
 Any questions can be directed to me at chosam@berkeley.edu
 
