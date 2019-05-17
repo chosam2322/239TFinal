@@ -34,4 +34,9 @@
   LegislativeMap2012.PDF - Map of 2012 legislation
   LegislativeMap2014.PDF - Map of 2014 legislation
   LegislativeMapCombined.PDF - 2012 and 2014 maps plotted in the same place
-# Supplemental Information/Next Steps 
+  
+# Supplemental Information
+Quick note - Legacy CSVs were used rather than APIs because the proprietary changes to the OpenStates API made it difficult to nail down what type of call would be consistent across states. In addition, the original focus of this project was going to be voting but the subject tag provided errors across states, with some states not having voting as a subject at all. A next iteration of a project like this would create a web scraper that would search individual bill text and use that instead of the legacy CSVs. 
+Huge thanks to Julia Christensen for sitting with me step by step to make sure this project would be completed
+Any questions can be directed to me at chosam@berkeley.edu
+
